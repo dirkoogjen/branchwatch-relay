@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.venv/
+local-state/
+.runner2/
+.env
+.env.*
+*.key
+*.pem
+*.log
+*.bak
+*.zip

@@ -1,0 +1,9 @@
+# Security / Beveiliging
+
+Treat access to the runner account and write access to its configuration, code, repositories and queue as execution authority. Git worktrees separate Git changes. They do not isolate the operating system. Claude Code is invoked with `bypassPermissions` after explicit enablement. Use trusted repositories and prompts, an unprivileged account, minimal credentials and a separate test environment. Review model-generated commits before integration.
+
+The monitor CLI binds to loopback and defaults to read-only. Local processes and anyone with access to a forwarded socket may be able to read task data. A browser action cookie and origin checks are not multi-user authentication. Treat action mode as administrator access. Keep the MCP, monitor and SSH endpoints private. Verify host-key fingerprints out of band. Keep SSH keys and tokens outside the source tree with restrictive permissions. Allow outbound connections only as needed for your workflow.
+
+Keep state, worktrees, transcripts, logs and backups private. Back up state and repositories as separate protected data. Test recovery in isolation. Review any optional usage or notification settings before enabling them. Report security issues privately to the maintainers. Include a minimal redacted description and version information.
+
+Behandel de runner en de schrijfrechten op configuratie, bron en wachtrij als uitvoerrechten. Claude kan na expliciete activering zonder interactieve toestemmingsvragen werken. Een Git-worktree beperkt geen toegang tot het besturingssysteem. Gebruik een apart account, minimale rechten en alleen vertrouwde opdrachten. Laat monitor en MCP op een besloten verbinding. Behandel gegevens in de monitor, logs en backups als vertrouwelijk. Controleer hostidentiteiten vóór het eerste SSH-gebruik. Meld veiligheidsproblemen privé met een omschrijving waaruit gevoelige gegevens zijn verwijderd.

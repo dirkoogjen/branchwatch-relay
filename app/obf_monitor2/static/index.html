@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Branchwatch Relay</title>
+<link rel="stylesheet" href="/monitor2.css">
+<link rel="icon" href="data:,">
+</head>
+<body>
+
+<div id="connection" class="connection" role="status" hidden></div>
+<!-- Geluid: de browser staat het pas toe na een klik; zolang dat niet gebeurd is staat hier een zichtbare knop. -->
+<button type="button" id="audio-gate" class="audio-gate" hidden></button>
+
+<!-- Twee schermen in dezelfde pagina: Monitor (#monitor, standaard) en Opdrachten (#opdrachten). De knop rechtsboven
+     wisselt zonder herladen; monitor2.js toont het ene scherm en verbergt het andere, de invoer blijft staan. -->
+<div id="view-monitor" class="page view" data-view="monitor">
+
+  <!-- Kop: logo, panorama, datum/tijd en of alle runners te lezen zijn. -->
+  <header class="top">
+    <div class="brand">
+      <div class="brand-text">
+        <span class="brand-name">Branchwatch Relay</span>
+        <span class="brand-sub">Monitor 2</span>
+      </div>
+    </div>
+    <div class="top-side">
+      <div class="top-clock">
+        <span id="clock-date" class="clock-date">—</span>
+        <span id="clock-time" class="clock-time">--:--</span>
+        <span id="system-summary" class="system-summary"><span class="led" data-tone="off" aria-hidden="true"></span><span id="system-summary-text">Runner 2 wordt gelezen…</span></span>
+      </div>
+      <a id="nav-jobs" class="btn nav-btn" href="#opdrachten" data-goto="opdrachten">Opdrachten <span aria-hidden="true">→</span><span id="nav-jobs-count" class="nav-count" hidden></span></a>
+    </div>
+  </header>
+
+  <!-- Bovenste rij, op dezelfde vier kolommen als de kaarten: Claude Usage, meldingen en
+       geluid, en de machines (twee kolommen breed). -->
+  <section class="top-row" aria-label="Overzicht">
+    <!-- Eén accountbreed Claude-usageblok: alleen wat Claude zelf meldt. -->
+    <section id="usage" class="panel mini usage" aria-labelledby="usage-title">
+      <div class="usage-title">
+        <span class="claude-mark" aria-hidden="true">✳</span>
+        <h2 id="usage-title">Claude usage</h2>
+      </div>
+      <ul id="usage-limits" class="usage-list" aria-label="Claude-limieten"></ul>
+      <p id="usage-note" class="usage-note" hidden></p>
+    </section>
+
+    <section class="panel mini notify-panel" aria-labelledby="notify-title">
+      <div class="mini-head mini-head--note">
+        <h2 id="notify-title">Meldingen en geluid</h2>
+        <p id="notify-line" class="mini-note"></p>
+      </div>
+      <div class="notify-body">
+        <div class="notify-rows">
+          <div class="notify-row">
+            <span class="notify-label" title="E-mail naar de telefoon; één schakelaar voor alle machines">Remote meldingen</span>
+            <button type="button" id="remote-switch" class="toggle toggle--physical" aria-pressed="false" disabled>
+              <span class="toggle-led" aria-hidden="true"></span>
+              <span class="toggle-track" aria-hidden="true"><span class="toggle-knob"></span></span>
+              <span id="remote-text" class="toggle-text">—</span>
+            </button>
+          </div>
+          <div class="notify-row">
+            <span class="notify-label">Geluid op deze machine</span>
+            <button type="button" id="sound-switch" class="toggle toggle--physical" aria-pressed="false">
+              <span class="toggle-led" aria-hidden="true"></span>
+              <span class="toggle-track" aria-hidden="true"><span class="toggle-knob"></span></span>
+              <span class="toggle-text">—</span>
+            </button>
+          </div>
+          <div class="notify-row">
+            <span class="notify-label">Spraak op deze machine</span>
+            <button type="button" id="speech-switch" class="toggle toggle--physical" aria-pressed="false">
+              <span class="toggle-led" aria-hidden="true"></span>
+              <span class="toggle-track" aria-hidden="true"><span class="toggle-knob"></span></span>
+              <span class="toggle-text">—</span>
+            </button>
+          </div>
+        </div>
+        <div class="notify-actions">
+          <button type="button" id="settings-open" class="btn btn--ghost btn--small">Instellingen</button>
+          <button type="button" id="test-sound" class="btn btn--ghost btn--small">▶ Test geluid</button>
+          <button type="button" id="test-speech" class="btn btn--ghost btn--small">▶ Test spraak</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Machines: MAC, LINUX, GERARD en WINDOWS met hun Runner-2-status. -->
+    <section class="panel mini machines-panel" aria-labelledby="machines-title">
+      <div class="mini-head">
+        <h2 id="machines-title">Machines · Runner 2</h2>
+        <span id="machines-hint" class="mini-hint">Hier verschijnt de status van de aangesloten runners.</span>
+        <button type="button" id="history-open" class="btn btn--ghost btn--small" title="Alleen lezen: alle acties van een machine, ook de afgehandelde.">Actiehistorie</button>
+      </div>
+      <div class="machines-body">
+      <ul id="machine-list" class="machine-list"></ul>
+      </div>
+    </section>
+  </section>
+
+  <!-- Eén kaart per machine (MAC, LINUX, GERARD, WINDOWS). monitor2.js bouwt ze. -->
+  <main id="cards" class="cards" aria-label="Machines"></main>
+
+  <!-- Onder elke kaart de Runner-2-taak van díe machine: opdracht, sessie, worktree, uitkomst. -->
+  <section id="tasks" class="tasks" aria-label="Runner 2-taken per machine"></section>
+</div>
+
+<!-- Scherm 2, Opdrachten: de opdrachtwachtrij van Runner 2 (invoer, per Runner de wachtrij). monitor2.js bouwt de kolommen. -->
+<div id="view-jobs" class="jobs-wrap view" data-view="opdrachten" hidden>
+<header class="top top--jobs">
+  <div class="brand">
+    <div class="brand-text">
+      <span class="brand-name">Branchwatch Relay</span>
+      <span class="brand-sub">Opdrachten</span>
+    </div>
+  </div>
+  <div class="top-side">
+    <a id="nav-monitor" class="btn nav-btn" href="#monitor" data-goto="monitor"><span aria-hidden="true">←</span> Monitor</a>
+  </div>
+</header>
+<section id="jobs" class="jobs" aria-labelledby="jobs-heading">
+  <div class="jobs-head">
+    <h2 id="jobs-heading">Opdrachten</h2>
+    <span id="jobs-summary" class="jobs-summary"></span>
+    <span id="jobs-control" class="jobs-control"></span>
+    <button type="button" id="jobs-pause-all" class="btn btn--small btn--ghost" disabled>Alles pauzeren</button>
+  </div>
+
+  <p id="jobs-error" class="dialog-note" data-tone="bad" role="alert" hidden></p>
+  <p id="jobs-note" class="dialog-note" role="status" hidden></p>
+
+  <div class="discussion-mode" role="group" aria-label="Wat wil je doen?">
+    <button type="button" id="mode-discuss" class="btn" aria-pressed="false">Eerst overleggen</button>
+    <button type="button" id="mode-execute" class="btn" aria-pressed="true">Opdracht uitvoeren</button>
+  </div>
+  <section id="discussions-panel" class="panel discussions" aria-label="Met Claude overleggen" hidden>
+    <aside class="discussion-sidebar">
+      <button type="button" id="discussion-new" class="btn btn--small">Nieuw gesprek</button>
+      <nav id="discussion-list" aria-label="Bewaarde gesprekken"></nav>
+    </aside>
+    <div class="discussion-main">
+      <header><h3 id="discussion-heading">Bespreek eerst je idee</h3><span id="discussion-model" class="discussion-meta">Claude · alleen lezen</span></header>
+      <p id="discussion-status" role="status" class="discussion-status"></p>
+      <div id="discussion-thread" class="discussion-thread" aria-label="Vragen en antwoorden"></div>
+      <p id="discussion-note" class="dialog-note" role="status" hidden></p>
+      <form id="discussion-form" autocomplete="off">
+        <div class="discussion-fields">
+          <label>Jouw naam<select id="discussion-by" required></select></label>
+          <label>Machine<select id="discussion-node"><option value="GERARD">GERARD</option><option value="LINUX">Linux</option></select></label>
+          <label>Project<select id="discussion-repository" required></select></label>
+        </div>
+        <label for="discussion-question">Je vraag aan Claude</label>
+        <textarea id="discussion-question" rows="4" maxlength="20000" placeholder="Geef een mogelijk ontwerp en leg uit hoe je dat zou maken."></textarea>
+        <div class="discussion-actions">
+          <button type="submit" id="discussion-send" class="btn btn--warm">Vraag stellen</button>
+          <button type="button" id="discussion-stop" class="btn btn--small" hidden>Overlegvraag stoppen</button>
+          <button type="button" id="discussion-copy" class="btn btn--ghost btn--small" disabled>Kopieer gesprek</button>
+          <button type="button" id="discussion-draft" class="btn btn--small" disabled>Maak hiervan een opdracht</button>
+        </div>
+        <p class="discussion-meta">Claude leest alleen. Een programmeeropdracht start pas nadat je het concept zelf in de wachtrij zet.</p>
+      </form>
+    </div>
+  </section>
+
+  <form id="jobs-form" class="panel jobs-form" autocomplete="off">
+    <div class="jobs-field jobs-field--wide">
+      <label for="jobs-prompt">Opdracht</label>
+      <textarea id="jobs-prompt" rows="6" maxlength="60000" placeholder="Wat moet Claude doen? Schrijf de volledige opdracht."></textarea>
+    </div>
+    <div class="jobs-field">
+      <label for="jobs-title">Titel</label>
+      <input id="jobs-title" type="text" maxlength="120" placeholder="Korte naam (mag leeg)">
+    </div>
+    <div class="jobs-field">
+      <label for="jobs-node">Runner</label>
+      <select id="jobs-node">
+        <option value="MAC">MAC</option><option value="GERARD">GERARD</option>
+        <option value="LINUX">Linux</option><option value="WINDOWS">WINDOWS</option>
+      </select>
+    </div>
+    <!-- Alleen de repositories die voor de gekozen Runner toegestaan én gecontroleerd zijn; monitor2.js vult de lijst. -->
+    <div class="jobs-field">
+      <label for="jobs-repository">Repository</label>
+      <select id="jobs-repository" aria-describedby="jobs-repo-note"><option value="">Lijst wordt geladen…</option></select>
+      <p id="jobs-repo-note" class="jobs-repo-note" hidden></p>
+      <button type="button" id="jobs-repo-plan" class="btn btn--ghost btn--small" hidden>Toon wat Runner 2 kiest</button>
+      <!-- Bij Automatisch bepalen: het voorstel, of de ene vraag als het niet ondubbelzinnig is (monitor2.js vult dit). -->
+      <div id="jobs-repo-decision" class="jobs-repo-decision" role="status" aria-live="polite" hidden></div>
+    </div>
+    <div class="jobs-field">
+      <label for="jobs-model">Model</label>
+      <select id="jobs-model">
+        <option value="standaard">Standaard</option><option value="opus">Opus</option><option value="sonnet">Sonnet</option>
+      </select>
+    </div>
+    <div class="jobs-field">
+      <label for="jobs-approval">Goedkeuring</label>
+      <select id="jobs-approval">
+        <option value="">Geen</option><option value="start">Start</option><option value="integratie">Integratie</option>
+        <option value="publicatie">Publicatie</option><option value="risico">Risico</option>
+      </select>
+    </div>
+    <div class="jobs-field">
+      <label for="jobs-by">Wie ben je</label>
+      <select id="jobs-by"><option value="">Kies…</option></select>
+    </div>
+    <div class="jobs-field jobs-field--checks">
+      <label class="jobs-check"><input id="jobs-supervisor" type="checkbox"> Supervisor</label>
+      <label class="jobs-check"><input id="jobs-require-check" type="checkbox"> Volgende opdrachten wachten op controle</label>
+      <label class="jobs-check"><input id="jobs-held" type="checkbox"> Vasthouden</label>
+    </div>
+    <p class="jobs-repo-note jobs-field--wide">Moet deze opdracht op een andere wachten? Vink dat aan bij die opdracht,
+      in <strong>Nu bezig</strong> of <strong>Wachtrij</strong> hieronder.</p>
+    <div class="jobs-field jobs-field--wide jobs-submit-row">
+      <button type="submit" id="jobs-submit" class="btn btn--primary">In wachtrij zetten</button>
+    </div>
+  </form>
+
+  <!-- Vier gescheiden kaders: "Mac — wachtrij", "Linux — wachtrij" (node-id LINUX),
+       "Gerard — wachtrij" en "Windows — wachtrij"; monitor2.js bouwt ze, naast elkaar bij genoeg breedte. -->
+  <div id="jobs-columns" class="jobs-columns" aria-label="Wachtrijen per machine"></div>
+</section>
+</div>
+
+<!-- Eén dialoog voor Reageren, Details en instellingen. -->
+<dialog id="dialog" class="dialog" aria-labelledby="dialog-title">
+  <div class="dialog-head">
+    <h2 id="dialog-title">—</h2>
+    <button type="button" id="dialog-close" class="btn btn--ghost btn--small" aria-label="Sluiten">Sluiten ✕</button>
+  </div>
+  <div id="dialog-body" class="dialog-body"></div>
+</dialog>
+
+<footer id="build-info" class="build-info" aria-label="Versie van deze Monitor 2">Build <span id="build-id">{{BUILD_ID}}</span> · commit <span id="build-commit">{{BUILD_COMMIT}}</span> · <span id="build-datum">{{BUILD_DATUM}}</span></footer>
+
+<script src="/monitor2.js"></script>
+<script src="/integration.js"></script>
+<script src="/discussions.js"></script>
+</body>
+</html>

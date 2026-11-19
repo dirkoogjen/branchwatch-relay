@@ -1,0 +1,18 @@
+[GERARD]
+host = "worker.example.invalid"
+user = "runner"
+port = 22
+identity_file = "~/.ssh/runner-worker"
+known_hosts_file = "~/.ssh/runner-known-hosts"
+code = "/home/runner/runner2-release"
+python = "/usr/bin/python3"
+
+[WINDOWS]
+host = "windows-worker.example.invalid"
+user = "runner"
+os = "windows"
+port = 22
+identity_file = "~/.ssh/runner-windows"
+known_hosts_file = "~/.ssh/runner-known-hosts"
+code = 'C:\Runner2\release'
+python = 'C:\Python314\python.exe'
